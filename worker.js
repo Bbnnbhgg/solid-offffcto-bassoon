@@ -17,7 +17,7 @@ export default {
       });
     }
 
-    const GEMINI_API_KEY = YOUR_GEMINI_API_KEY; // Hardcoded or from secrets
+    const GEMINI_API_KEY = AIzaSyDzRjhrxdHk5gmEByP_-AzI9gbNLzRwX7E; // Hardcoded or from secrets
     const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
     
     const prompt = `Replace any offensive or inappropriate words in this sentence with asterisks (e.g., ****): "${text}". Return only the censored sentence.`;
