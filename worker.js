@@ -1,67 +1,42 @@
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
+export default {
+  async fetch(request) {
+    if (request.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Only POST allowed" }), {
+        status: 405,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-async function handleRequest(request) {
-  // Only handle requests to the root ('/') route
-  const url = new URL(request.url)
-  if (url.pathname !== '/') {
-    return new Response('Not Found', { status: 404 })
-  }
+    const body = await request.json();
+    const text = body.text;
 
-  // Check if the request method is GET
-  if (request.method !== 'GET') {
-    return new Response('Method Not Allowed', { status: 405 })
-  }
+    if (!text) {
+      return new Response(JSON.stringify({ error: "Text parameter is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-  // Get the User-Agent from the request headers
-  const userAgent = request.headers.get('User-Agent')
+    const GEMINI_API_KEY = YOUR_GEMINI_API_KEY; // Hardcoded or from secrets
+    const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    
+    const prompt = `Replace any offensive or inappropriate words in this sentence with asterisks (e.g., ****): "${text}". Return only the censored sentence.`;
 
-  // Check if the User-Agent contains "Roblox" (common in Roblox user agents)
-  if (!userAgent || !userAgent.includes('Roblox')) {
-    // Return an HTML response for incorrect User-Agent
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Access Denied</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-            color: #333;
-          }
-          h1 {
-            color: #e74c3c;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Access Denied</h1>
-        <p>Your is not allowed to access this resource. Only clients are permitted.</p>
-      </body>
-      </html>
-    `;
-    return new Response(htmlContent, {
-      headers: { 'Content-Type': 'text/html' },
-      status: 403
+    const geminiRes = await fetch(GEMINI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
     });
-  }
 
-  // Basic Roblox Lua Script
-  const robloxScript = `
--- Roblox Lua Script
---[[
-  WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
-loadstring(game:HttpGet("https://pastes.io/raw/djjdjd-570"))()
-`;
+    const geminiData = await geminiRes.json();
 
-  // Respond with the Roblox Lua script
-  return new Response(robloxScript, {
-    headers: { 'Content-Type': 'text/plain' }
-  });
-}
+    const filtered = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Error filtering text.";
+
+    return new Response(JSON.stringify({ original: text, filtered }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  },
+};
